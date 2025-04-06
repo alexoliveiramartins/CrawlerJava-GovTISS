@@ -16,7 +16,9 @@ class Crawler {
 
     def final outputDirPath = Paths.get('downloads')
     def outputFileName = 'padrao-tiss.zip'
-    def outputFile = outputDirPath.resolve(outputFileName).toFile()
+    def outputFileTiss = outputDirPath.resolve(outputFileName).toFile()
+    def outputFileTabelaName = 'tabela-erros-tiss.xlsx'
+    def outputFileTabela = outputDirPath.resolve(outputFileTabelaName).toFile()
 
     void downloadTissZip(){
         def urlAtual
@@ -70,12 +72,119 @@ class Crawler {
             HttpBuilder.configure {
                 request.uri = urlZipTiss
             }.get {
-                Download.toFile(delegate, outputFile)
+                Download.toFile(delegate, outputFileTiss)
             }
-            println "Download completo: ${outputFile.absolutePath}"
+            println "Download completo: ${outputFileTiss.absolutePath}"
         } catch (Exception e) {
             println "Erro ao baixar o arquivo: " + e.message
         }
+    }
+
+    void downloadTabelasRelacionadas(){
+        def urlAtual
+
+        try {
+            Files.createDirectories(outputDirPath)
+            println "Output directory ensured: ${outputDirPath.toAbsolutePath()}"
+        } catch (IOException e) {
+            println "Error creating output directory ${outputDirPath}: ${e.message}"
+            System.exit(1)
+        }
+
+        try{
+            doc = Jsoup.connect(baseUrl).get()
+        } catch (IOException e){
+            println "Erro ao acessar $baseUrl: " + e.message
+        }
+        Elements links = doc.select("a:contains(Prestador de Serviços de Saúde)")
+        urlAtual = links.attr('href')
+        println "Redirecionado para $urlAtual..."
+
+        try{
+            doc = Jsoup.connect(urlAtual).get()
+        } catch (IOException e){
+            println "Erro ao acessar $urlAtual: " + e.message
+        }
+        Elements tissLink = doc.select("a:contains(TISS)")
+        urlAtual = tissLink.attr('href')
+        println "Redirecionando para $urlAtual..."
+
+        try{
+            doc = Jsoup.connect(urlAtual).get()
+        }catch (IOException e){
+            println "Erro ao acessar $urlAtual: " + e.message
+        }
+        Elements tabelasRelacionadasLink = doc.select("a:contains(planilhas)")
+        urlAtual = tabelasRelacionadasLink.attr('href')
+        println "Redirecioando para $urlAtual..."
+
+        try {
+            doc = Jsoup.connect(urlAtual).get()
+        } catch (IOException e){
+            println "Erro ao acessar $urlAtual: " + e.message
+        }
+        Elements arquivoTabelaErros = doc.select("a:contains(Tabela de erros)")
+        def urlZipTiss = arquivoTabelaErros.attr('href')
+        println "$urlZipTiss"
+
+        // baixar o arquivo
+        try {
+            HttpBuilder.configure {
+                request.uri = urlZipTiss
+            }.get {
+                Download.toFile(delegate, outputFileTabela)
+            }
+            println "Download completo: ${outputFileTabela.absolutePath}"
+        } catch (Exception e) {
+            println "Erro ao baixar o arquivo: " + e.message
+        }
+    }
+
+    void historyData(){
+        def urlAtual
+
+        try {
+            Files.createDirectories(outputDirPath)
+            println "Output directory ensured: ${outputDirPath.toAbsolutePath()}"
+        } catch (IOException e) {
+            println "Error creating output directory ${outputDirPath}: ${e.message}"
+            System.exit(1)
+        }
+
+        try{
+            doc = Jsoup.connect(baseUrl).get()
+        } catch (IOException e){
+            println "Erro ao acessar $baseUrl: " + e.message
+        }
+        Elements links = doc.select("a:contains(Prestador de Serviços de Saúde)")
+        urlAtual = links.attr('href')
+        println "Redirecionado para $urlAtual..."
+
+        try{
+            doc = Jsoup.connect(urlAtual).get()
+        } catch (IOException e){
+            println "Erro ao acessar $urlAtual: " + e.message
+        }
+        Elements tissLink = doc.select("a:contains(TISS)")
+        urlAtual = tissLink.attr('href')
+        println "Redirecionando para $urlAtual..."
+
+        try{
+            doc = Jsoup.connect(urlAtual).get()
+        }catch (IOException e){
+            println "Erro ao acessar $urlAtual: " + e.message
+        }
+        Elements padraoTissUrl = doc.select("a:contains(acessar todas as)")
+        urlAtual = padraoTissUrl.attr('href')
+        println "Redirecioando para $urlAtual..."
+
+        try{
+            doc = Jsoup.connect(urlAtual).get()
+        } catch (IOException e){
+            println "Erro ao acessar $urlAtual: " + e.message
+        }
+        Elements listaHistorico = doc.select("tr")
+        listaHistorico.each {it  -> println it}
     }
 }
 
