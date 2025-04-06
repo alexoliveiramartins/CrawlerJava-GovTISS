@@ -12,11 +12,11 @@ import java.nio.file.Paths
 
 class Crawler {
     def baseUrl = "https://www.gov.br/ans/pt-br"
+    def final outputDirPath = Paths.get('downloads')
     Document doc
 
-    def final outputDirPath = Paths.get('downloads')
-    def outputFileName = 'padrao-tiss.zip'
-    def outputFileTiss = outputDirPath.resolve(outputFileName).toFile()
+    def outputFileTissName = 'padrao-tiss.zip'
+    def outputFileTiss = outputDirPath.resolve(outputFileTissName).toFile()
     def outputFileTabelaName = 'tabela-erros-tiss.xlsx'
     def outputFileTabela = outputDirPath.resolve(outputFileTabelaName).toFile()
 
@@ -74,7 +74,7 @@ class Crawler {
             }.get {
                 Download.toFile(delegate, outputFileTiss)
             }
-            println "Download completo: ${outputFileTiss.absolutePath}"
+            println "======= Download completo: ${outputFileTiss.absolutePath} =======\n"
         } catch (Exception e) {
             println "Erro ao baixar o arquivo: " + e.message
         }
@@ -134,7 +134,7 @@ class Crawler {
             }.get {
                 Download.toFile(delegate, outputFileTabela)
             }
-            println "Download completo: ${outputFileTabela.absolutePath}"
+            println "======= Download completo: ${outputFileTabela.absolutePath} =======\n"
         } catch (Exception e) {
             println "Erro ao baixar o arquivo: " + e.message
         }
@@ -183,8 +183,30 @@ class Crawler {
         } catch (IOException e){
             println "Erro ao acessar $urlAtual: " + e.message
         }
+
         Elements listaHistorico = doc.select("tr")
-        listaHistorico.each {it  -> println it}
+        String arquivoCsv = 'historico.csv'
+        String pathCsv = outputDirPath.resolve(arquivoCsv).toFile()
+        try(FileWriter writer = new FileWriter(pathCsv)){
+            listaHistorico.find {it  ->
+                String csvLine = new String()
+                it.children().each {
+                    children ->
+                        csvLine += children.text() + ","
+                }
+                if(csvLine.split(',')[0] == 'Jan/2016') {
+                    def campos = csvLine.split(',')
+                    writer.append(campos[0] + "," + campos[1] + "," + campos[2] + "\n")
+                    return true
+                }
+                def campos = csvLine.split(',')
+                writer.append(campos[0] + "," + campos[1] + "," + campos[2] + "\n")
+                return false
+            }
+            println "======= Arquivo csv criado com sucesso =======\n"
+        } catch (IOException e){
+            println "Erro ao criar arquivo csv: " + e.message
+        }
     }
 }
 
